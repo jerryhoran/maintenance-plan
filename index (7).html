@@ -1,0 +1,862 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Maintenance Plan</title>
+<style>
+/* Layout: one card per property. Inside: 1 owner date, 2 vendor checklist, 3 close out. Vendor contacts sit at the bottom. */
+:root{
+  --page:#FAF7EF; --panel:#FFFFFF; --row-alt:#F4F1E8; --line:#DDD8CB;
+  --green:#283D2A; --silver:#9AA39C; --ink:#1E2A20; --muted:#5E685F;
+  --red:#8E2F26; --amber:#9A7016; --ok:#3F6B45; --blue:#3C5A73;
+  --red-bg:#F6E6E3; --amber-bg:#F6EED9; --ok-bg:#E4EDE4; --blue-bg:#E3EAF0; --grey-bg:#ECEAE3;
+  --on-green:#FAF7EF;
+  --serif:"Times New Roman",Times,"Liberation Serif",serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --page:#151B16; --panel:#1C241D; --row-alt:#202A21; --line:#344036;
+  --green:#8DB394; --silver:#8E988F; --ink:#E6E8E1; --muted:#A5AEA5;
+  --red:#E08A7F; --amber:#D9B25A; --ok:#8CC296; --blue:#93B4CF;
+  --red-bg:#3A2320; --amber-bg:#36301C; --ok-bg:#223428; --blue-bg:#1F2C37; --grey-bg:#2A322B;
+  --on-green:#151B16; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --page:#151B16; --panel:#1C241D; --row-alt:#202A21; --line:#344036;
+  --green:#8DB394; --silver:#8E988F; --ink:#E6E8E1; --muted:#A5AEA5;
+  --red:#E08A7F; --amber:#D9B25A; --ok:#8CC296; --blue:#93B4CF;
+  --red-bg:#3A2320; --amber-bg:#36301C; --ok-bg:#223428; --blue-bg:#1F2C37; --grey-bg:#2A322B;
+  --on-green:#151B16; color-scheme:dark}
+*{box-sizing:border-box}
+/* Priority, Vendors and Status report tabs: green and white only */
+body.plain{--page:var(--panel);--row-alt:var(--panel);--grey-bg:var(--panel);--red-bg:var(--panel);--amber-bg:var(--panel);--ok-bg:var(--panel);--blue-bg:var(--panel);--silver:var(--green);--red:var(--green);--amber:var(--green);--ok:var(--green);--blue:var(--green);--muted:var(--ink)}
+.pmsel{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.pmsel select{font:inherit;font-size:15px;padding:6px 8px;min-width:200px;background:var(--panel);color:var(--ink);border:1px solid var(--green)}
+body{background:var(--page);color:var(--ink);font-family:var(--serif);font-size:16px;line-height:1.4}
+.wrap{max-width:980px;margin:0 auto;padding-inline:16px;padding-block:20px 60px;display:flex;flex-direction:column;gap:16px}
+header{border-bottom:2px solid var(--green);padding-bottom:12px}
+.eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--silver)}
+h1{margin:2px 0 0;font-size:28px;color:var(--green);text-wrap:balance}
+.sub{color:var(--muted);font-size:14px;margin-top:4px}
+button{font-family:var(--serif);font-size:15px;cursor:pointer;color:inherit}
+input,select,textarea{font-family:var(--serif);font-size:16px;padding:7px 8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:0;min-width:0}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.btn{background:var(--green);color:var(--on-green);border:0;padding:8px 14px;font-weight:700}
+.btn.ghost{background:transparent;color:var(--green);border:1px solid var(--green)}
+.btn.danger{background:transparent;color:var(--red);border:1px solid var(--red)}
+.linkbtn{background:none;border:0;color:var(--green);text-decoration:underline;font-size:14px;padding:2px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{background:var(--panel);border:1px solid var(--line);padding:6px 12px;font-size:14px}
+.chip[aria-pressed="true"]{background:var(--green);color:var(--on-green);border-color:var(--green)}
+.chip .ct{color:var(--silver);margin-left:4px;font-variant-numeric:tabular-nums}
+.chip[aria-pressed="true"] .ct{color:inherit;opacity:.8}
+
+/* property card */
+.props{display:flex;flex-direction:column;gap:12px}
+details.prop{background:var(--panel);border:1px solid var(--line)}
+details.prop[open]{border-color:var(--green)}
+details.prop > summary{list-style:none;cursor:pointer;padding:12px 14px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;align-items:center}
+details.prop > summary::-webkit-details-marker{display:none}
+.pname{font-size:19px;font-weight:700;color:var(--green)}
+.pname .num{color:var(--silver);font-variant-numeric:tabular-nums;margin-right:8px}
+.pmeta{grid-column:1;color:var(--muted);font-size:13px}
+.pstat{grid-row:1 / span 2;grid-column:2;display:flex;flex-direction:column;align-items:flex-end;gap:4px;text-align:right}
+.pill{font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:4px 8px;font-weight:700;white-space:nowrap}
+.p-need{background:var(--amber-bg);color:var(--amber)}
+.p-book{background:var(--blue-bg);color:var(--blue)}
+.p-ok{background:var(--ok-bg);color:var(--ok)}
+.p-out{background:var(--grey-bg);color:var(--silver)}
+.pcount{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+details.prop.faded{opacity:.5}
+details.prop.faded[open]{opacity:1}
+.pbody{border-top:1px solid var(--line);display:flex;flex-direction:column}
+.step{padding:12px 14px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:10px}
+.step:last-child{border-bottom:0}
+.sh{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.sh .n{color:var(--silver);font-weight:700;font-variant-numeric:tabular-nums}
+.sh h3{margin:0;font-size:16px;color:var(--green)}
+.sh .hint{color:var(--muted);font-size:13px}
+.frow{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+.frow label{display:flex;flex-direction:column;gap:3px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.frow label.grow{flex:1 1 220px}
+.frow label.grow input{width:100%}
+.done-line{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;font-size:15px}
+.done-line .ok{color:var(--ok);font-weight:700}
+
+/* vendor checklist */
+.vlist{display:flex;flex-direction:column;border-top:1px solid var(--line)}
+.vrow{display:grid;grid-template-columns:40px minmax(0,1fr) 150px auto;gap:8px 12px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+.vrow.off{opacity:.45}
+.vrow.vhead{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--silver);padding:4px 0}
+.vrow.vhead span:first-child{text-align:center}
+@media (max-width:640px){.vrow.vhead span:nth-child(4){display:none}}
+.vrow .need{display:flex;justify-content:center}
+.vrow .need input{width:22px;height:22px;accent-color:var(--ok)}
+.vname{min-width:0}
+.vname b{display:block;font-size:15px}
+.vname .work{color:var(--muted);font-size:14px}
+.vname .contact{display:block;font-size:12px;color:var(--muted);overflow-wrap:anywhere}
+.vname .tbd{color:var(--amber);font-style:italic}
+.vrow input[type=date]{width:100%;font-size:15px;padding:5px 6px}
+.vrow .dt{display:flex;flex-direction:column;gap:4px}.vrow .dt select{width:100%;font-size:14px;padding:5px 6px}
+.sendall{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 12px;padding:10px 12px;border:1px solid var(--line);background:var(--row-alt)}
+.sendall b{color:var(--green)}
+a.btn{text-decoration:none;display:inline-block}
+.seg{display:flex;border:1px solid var(--line)}
+.seg button{background:var(--panel);border:0;border-right:1px solid var(--line);padding:6px 9px;font-size:13px;color:var(--muted);white-space:nowrap}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"].s-req{background:var(--blue-bg);color:var(--blue);font-weight:700}
+.seg button[aria-pressed="true"].s-sched{background:var(--ok);color:var(--on-green);font-weight:700}
+.seg button[aria-pressed="true"].s-done{background:var(--green);color:var(--on-green);font-weight:700}
+.seg button[aria-pressed="true"].s-todo{background:var(--grey-bg);color:var(--ink)}
+.vtools{grid-column:2 / -1;display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px}
+@media (max-width:640px){
+  .vrow{grid-template-columns:36px minmax(0,1fr) 130px}
+  .vrow .seg{grid-column:2 / -1}
+}
+.vedit-row{border-bottom:1px solid var(--line);padding:10px 0;display:flex;flex-direction:column;gap:8px;background:var(--row-alt)}
+.vedit-row .frow{padding:0 8px}
+.picks{display:flex;flex-wrap:wrap;gap:6px;padding:0 8px}
+.plabel{width:100%;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--silver)}
+.pick{display:flex;flex-direction:column;align-items:flex-start;background:var(--panel);border:1px solid var(--line);padding:6px 10px;text-align:left;min-height:44px}
+.pick b{font-size:14px}
+.pick span{font-size:12px;color:var(--muted)}
+.pick:hover{border-color:var(--green)}
+.pdetails{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:14px;color:var(--ink);align-items:baseline}
+.pdetails b{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--silver);font-weight:400;margin-right:4px}
+ul.scope{margin:4px 0 0;padding-left:18px;font-size:13px;color:var(--muted)}
+ul.scope li.red{color:var(--red)}
+details.oi summary{cursor:pointer;font-size:14px;color:var(--amber);list-style:none}
+details.oi summary::-webkit-details-marker{display:none}
+.vedit-row textarea{width:100%;font-family:var(--serif);font-size:15px}
+.emails{display:flex;flex-direction:column;border-top:1px solid var(--line)}
+.em{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px;flex-wrap:wrap}
+.emark{display:inline-block;margin-top:8px;padding:4px 10px;font-size:13px;font-weight:700;border-left:4px solid}
+.emark.ok{background:var(--ok-bg);color:var(--ok);border-color:var(--ok)}
+.emark.warn{background:var(--amber-bg);color:var(--amber);border-color:var(--amber)}
+.emark.sm{margin:0 0 0 8px;padding:1px 8px;font-size:12px;border-left-width:3px}
+.em.sent{background:var(--ok-bg);border-left:4px solid var(--ok);padding-left:10px}
+.em .sentb{display:inline-block;margin-left:6px;padding:1px 8px;background:var(--ok);color:var(--ok-bg);font-size:12px;font-weight:700;letter-spacing:.03em}
+.em .addr{color:var(--muted);font-size:13px;overflow-wrap:anywhere}
+.warnt{color:var(--amber)}
+.checks{display:flex;flex-wrap:wrap;gap:10px 22px}
+.checks label{display:flex;align-items:center;gap:8px;font-size:15px;cursor:pointer}
+.checks input{width:20px;height:20px;accent-color:var(--ok)}
+
+/* vendor contacts */
+details.contacts{background:var(--panel);border:1px solid var(--line)}
+details.contacts > summary{cursor:pointer;padding:12px 14px;font-weight:700;color:var(--green);list-style:none}
+details.contacts > summary::-webkit-details-marker{display:none}
+details.contacts > summary .rc{font-weight:400;color:var(--muted);font-size:14px;margin-left:8px}
+.crow{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px 14px;border-top:1px solid var(--line);flex-wrap:wrap}
+.crow .cv{display:flex;flex-direction:column;min-width:0}
+.crow .addr{font-size:13px;color:var(--muted);overflow-wrap:anywhere}
+.cedit{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:6px}
+.cedit input{flex:1 1 170px}
+
+.slabel{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--silver);align-self:center;margin-right:2px}
+.ghead{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--green);border-bottom:1px solid var(--green);padding:10px 2px 4px;display:flex;justify-content:space-between}
+.ghead span{color:var(--silver);font-variant-numeric:tabular-nums}
+.hbtns{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.rep{display:flex;flex-direction:column;gap:12px;background:var(--panel);border:1px solid var(--line);padding:18px 16px}
+.rtop{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-end;border-bottom:2px solid var(--green);padding-bottom:10px}
+.rtitle{margin:2px 0 0;font-size:26px;color:var(--green)}
+h2.rh{margin:14px 0 0;font-size:17px;color:var(--green);border-bottom:1px solid var(--green);padding-bottom:4px;display:flex;gap:10px;align-items:baseline}
+h2.rh span{color:var(--silver);font-variant-numeric:tabular-nums}
+h3.rsub{margin:8px 0 0;font-size:15px;color:var(--green)}
+.tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border:1px solid var(--line)}
+.tile{padding:10px 6px;text-align:center;border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
+.tile:nth-child(4n){border-right:0}.tile:nth-last-child(-n+4){border-bottom:0}
+.tile b{display:block;font-size:26px;color:var(--silver);font-variant-numeric:tabular-nums}
+.tile b.hot{color:var(--red)}
+.tile span{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.rnote{margin:0;font-size:14px;color:var(--muted)}
+.tw{overflow-x:auto}
+table.rt{border-collapse:collapse;width:100%;font-size:14px;min-width:560px}
+table.rt th{background:var(--green);color:var(--on-green);text-align:left;padding:6px 8px;font-weight:700}
+table.rt td{padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+table.rt tbody tr:nth-child(even){background:var(--row-alt)}
+table.rt td.num{font-variant-numeric:tabular-nums}
+table.rt td.red,.rep .red{color:var(--red);font-weight:700}
+.amb{color:var(--amber)}
+ul.rlist{margin:0;padding-left:18px;font-size:14px;display:flex;flex-direction:column;gap:4px}
+.rfoot{border-top:1px solid var(--silver);padding-top:8px;margin-top:8px;color:var(--silver);font-size:12px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+@media (max-width:560px){.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.tile:nth-child(4n){border-right:1px solid var(--line)}.tile:nth-child(2n){border-right:0}}
+.tabs{display:flex;gap:0;margin-top:12px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.tabs button{background:none;border:0;border-bottom:3px solid transparent;padding:8px 14px;font-size:15px;color:var(--muted)}
+.tabs button[aria-selected="true"]{color:var(--green);border-bottom-color:var(--green);font-weight:700}
+.tabs .tc{background:var(--red);color:var(--on-green);font-size:11px;padding:1px 6px;margin-left:6px;font-weight:700}
+.tabs .tc:empty{display:none}
+.pg h3{margin:10px 0 4px;font-size:16px;color:var(--green);border-bottom:1px solid var(--green);padding-bottom:3px;display:flex;justify-content:space-between;gap:8px}
+.pg h3 span{font-size:12px;color:var(--silver);font-weight:400}
+label.pi{display:flex;gap:10px;align-items:flex-start;padding:8px 2px;border-bottom:1px solid var(--line);cursor:pointer}
+label.pi input{width:22px;height:22px;flex:none;accent-color:var(--ok);margin-top:1px}
+.pt{display:flex;flex-direction:column;font-size:15px;color:var(--red)}
+.pt small{font-size:12px;color:var(--muted)}
+label.pi.done .pt{color:var(--muted);text-decoration:line-through}
+label.pi.done .pt small{text-decoration:none}
+.vtable{display:flex;flex-direction:column}
+.vcard{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:10px 2px;border-bottom:1px solid var(--line)}
+.vcard.editing{flex-direction:column;background:var(--row-alt);padding:10px}
+.vmain{display:flex;flex-direction:column;min-width:0;flex:1 1 280px;gap:2px}
+.vn{font-size:16px;color:var(--ink)}
+.vs{font-size:14px;color:var(--green)}
+.vc{font-size:13px;color:var(--muted);overflow-wrap:anywhere}
+.vp{font-size:12px;color:var(--silver)}
+.vact{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.vform{display:flex;flex-direction:column;gap:8px;background:var(--row-alt);padding:10px 0}
+.vform label input{width:100%}
+.notice{border:1px solid var(--line);background:var(--panel);padding:14px;color:var(--muted);font-size:14px}
+footer{border-top:1px solid var(--silver);padding-top:8px;color:var(--silver);font-size:12px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+#copyFallback{width:100%;min-height:160px}
+
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--green);color:var(--on-green);padding:8px 16px;z-index:20;font-size:14px}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Client Care Services · Internal</div>
+    <h1>Maintenance Plan</h1>
+    <div class="sub" id="sub">Loading…</div>
+    <div class="sub" id="who"></div>
+    <div id="emailMark"></div>
+    <nav class="tabs" role="tablist"><button type="button" role="tab" data-tab="main" aria-selected="true">Schedule</button><button type="button" role="tab" data-tab="prio" aria-selected="false">Priority items<span class="tc" id="prioCount"></span></button><button type="button" role="tab" data-tab="vendors" aria-selected="false">Vendors</button><button type="button" role="tab" data-tab="report" aria-selected="false">Status report</button></nav>
+  </header>
+  <section id="report" hidden></section>
+  <section id="prio" hidden></section>
+  <section id="vendors" hidden></section>
+  <div id="main">
+
+  <div class="chips" id="pmchips" role="group" aria-label="Property manager"></div>
+  <div id="addprop"></div>
+  <div class="chips" id="filters" role="group" aria-label="Filter properties"></div>
+  <div id="sendall"></div>
+  <div class="chips" id="sorts" role="group" aria-label="Sort properties"></div>
+  <textarea id="copyFallback" hidden aria-label="Email text to copy"></textarea>
+  <div class="props" id="props"><div class="notice">Your properties load here. Open one, confirm the owner's date, then book each vendor on its checklist.</div></div>
+  <div id="contacts"></div>
+  <datalist id="vendorNames"></datalist>
+  </div>
+
+  <footer><span>The Lagassé Group · Client Care Services · 1 Tech Circle, Natick, MA</span><span>Internal</span></footer>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.min.js"></script>
+<script>
+
+/* ===== Supabase connection (TLG lg-client-care project) ===== */
+const SB_URL="https://mgjhxwtoroglbnhnwtsr.supabase.co";
+const SB_KEY="PASTE_SUPABASE_ANON_KEY_HERE";
+const TBL={properties:"maint_properties",visits:"maint_visits",vendors:"maint_vendors"};
+function deepMerge(a,b){const o={...(a||{})};for(const k in b){const v=b[k],c=o[k];o[k]=(v&&typeof v==="object"&&!Array.isArray(v)&&c&&typeof c==="object"&&!Array.isArray(c))?deepMerge(c,v):v}return o}
+function makeDb(sb){
+  const cache={}, subs={}, loading={};
+  const emit=col=>(subs[col]||[]).forEach(s=>{const docs=[...(cache[col]||new Map()).entries()].map(([id,data])=>({id,data:()=>data}));if(s.order)docs.sort((a,b)=>(a.data()[s.order]??0)-(b.data()[s.order]??0));s.fn({docs})});
+  async function start(col){
+    const {data,error}=await sb.from(TBL[col]).select("id,data");
+    if(error){(subs[col]||[]).forEach(s=>s.err&&s.err(error));throw error}
+    cache[col]=new Map(data.map(r=>[r.id,r.data]));emit(col);
+    sb.channel("rt-"+col).on("postgres_changes",{event:"*",schema:"public",table:TBL[col]},p=>{const m=cache[col]||(cache[col]=new Map());if(p.eventType==="DELETE")m.delete(p.old.id);else m.set(p.new.id,p.new.data);emit(col)})
+      .subscribe(st=>{if(st==="CHANNEL_ERROR"||st==="TIMED_OUT")(subs[col]||[]).forEach(s=>s.err&&s.err(new Error(st)))});
+  }
+  function sub(col,fn,err,order){(subs[col]=subs[col]||[]).push({fn,err,order});if(!loading[col])loading[col]=start(col).catch(()=>{});else if(cache[col])emit(col);return()=>{subs[col]=subs[col].filter(x=>x.fn!==fn)}}
+  async function put(col,id,data){const {error}=await sb.from(TBL[col]).upsert({id,data,updated_at:new Date().toISOString()});if(error)throw error;(cache[col]=cache[col]||new Map()).set(id,data);emit(col)}
+  function docApi(col,id){return{
+    async get(){const d=(cache[col]||new Map()).get(id);return{exists:!!d,id,data:()=>d}},
+    set:data=>put(col,id,data),
+    async update(patch){let cur=(cache[col]||new Map()).get(id);if(!cur){const {data}=await sb.from(TBL[col]).select("data").eq("id",id).maybeSingle();cur=data&&data.data}return put(col,id,deepMerge(cur||{},patch))},
+    async delete(){const {error}=await sb.from(TBL[col]).delete().eq("id",id);if(error)throw error;(cache[col]||new Map()).delete(id);emit(col)}}}
+  return{
+    collection:col=>({orderBy:f=>({onSnapshot:(fn,err)=>sub(col,fn,err,f)}),onSnapshot:(fn,err)=>sub(col,fn,err),doc:id=>docApi(col,id),
+      add:async obj=>{const id=(crypto.randomUUID?crypto.randomUUID():String(Date.now())+Math.random().toString(36).slice(2));await put(col,id,obj);return{id}}}),
+    doc:path=>{const [col,id]=path.split("/");return docApi(col,id)}};
+}
+const DL={async save({filename,data}){const b=data instanceof Blob?data:new Blob([data]);const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=filename;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1500);return{status:"saved"}}};
+const SIG="Jerry Horan\nSenior Property Manager\nThe Lagassé Group\nO: 508-686-5040 · M: 508-848-8004\njhoran@thelagassegroup.com";
+const STAT=[{k:"todo",l:"Not contacted"},{k:"req",l:"Email sent"},{k:"sched",l:"Confirmed"},{k:"done",l:"Done"}];
+let db=null, canWrite=true, PROPS=[], visits=[], VENDORS=[], filter=null, openSet=new Set(), editing=null, editingProp=null, editContact=null, busy=new Set(), sortMode="default";
+const PMS=["Jerry Horan","Lucien","James"];
+const pmOf=p=>p.pm||"Jerry Horan";
+let pmFilter=null, addingProp=false;
+const SIGFOR=p=>pmOf(p)==="Jerry Horan"?SIG:`${pmOf(p)}\nThe Lagassé Group\nO: 508-686-5040`;
+const TYPE_ORDER=["Home with lot","Townhome","Highrise"];
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const today=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
+function addDays(s,n){const [y,m,d]=s.split("-").map(Number);const t=new Date(y,m-1,d+n);return t.getFullYear()+"-"+String(t.getMonth()+1).padStart(2,"0")+"-"+String(t.getDate()).padStart(2,"0")}
+function fmtTime(t){const m=/^(\d{1,2}):(\d{2})$/.exec(t||"");if(!m)return t||"";let h=+m[1];const ap=h>=12?"PM":"AM";h=h%12||12;return `${h}:${m[2]} ${ap}`}
+const QTIMES=(()=>{const a=[];for(let m=6*60;m<=18*60;m+=15)a.push(String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0"));return a})();
+function timeOpts(cur){const has=QTIMES.includes(cur);return `<option value="">Arrival time</option>${!has&&cur?`<option value="${esc(cur)}" selected>${esc(fmtTime(cur))}</option>`:""}${QTIMES.map(t=>`<option value="${t}"${t===cur?" selected":""}>${fmtTime(t)}</option>`).join("")}`}
+function fmtDate(s){if(!s)return "";const [y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d).toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})}
+function toast(m){const t=$("toast");t.textContent=m;t.hidden=false;clearTimeout(toast._t);toast._t=setTimeout(()=>t.hidden=true,2200)}
+async function copyText(txt){try{await navigator.clipboard.writeText(txt);toast("Copied. Paste it into Outlook.")}catch(e){const ta=$("copyFallback");ta.value=txt;ta.hidden=false;ta.focus();ta.select();toast("Select all and copy")}}
+function handleErr(e){if(e&&e.code==="invalid_argument"){canWrite=false;toast("You have view-only access");render()}else toast("Couldn't save. Try again in a moment.")}
+
+function vendorInfo(name){const n=(name||"").toLowerCase();return VENDORS.find(v=>(v.match||[]).some(m=>new RegExp("\\b"+m.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"\\b").test(n)))||null}
+function vkey(name){const i=vendorInfo(name);return i?i.name:(name||"").replace(/\s*\(.*\)\s*/,"").trim()}
+const isVendor=v=>v.vendor&&!/owner-direct|lagass/i.test(v.vendor);
+const town=p=>(p.town||"");
+
+/* property state */
+function effDate(v,p){p=p||PROPS.find(x=>x.name===v.property);return v.date||((p&&p.flow)||{}).clientDate||""}
+function pv(p){return visits.filter(v=>v.property===p.name)}
+function needed(p){return pv(p).filter(v=>!v.skip)}
+function confirmedN(p){return needed(p).filter(v=>v.status==="sched"||v.status==="done").length}
+function stage(p){
+  if(p.optedOut) return "out";
+  if(p.seasonComplete) return "complete";
+  if(!(p.flow||{}).client) return "owner";
+  const n=needed(p).length; return n&&confirmedN(p)>=n?"booked":"booking";
+}
+const STAGES=[["owner","Call owner","p-need"],["booking","Booking vendors","p-book"],["booked","All vendors confirmed","p-ok"],["complete","Season complete","p-ok"],["out","Opted out","p-out"]];
+
+function render(){
+  if(showReport){renderReport();}
+  renderPrio();
+  if(tab==="vendors") renderVendors();
+  const act=PROPS.filter(p=>!p.optedOut);
+  {const ready=act.filter(p=>!p.seasonComplete&&p.flow&&p.flow.client);const em=ready.flatMap(p=>bookingEmails(p).map(e=>({p,e})));const sent=em.filter(x=>x.e.sent).length;const noAddr=em.filter(x=>!x.e.sent&&!x.e.email);const toSend=em.filter(x=>!x.e.sent&&x.e.email);
+   $("emailMark").innerHTML=em.length?(sent===em.length?`<span class="emark ok">✓ All vendor emails sent · ${sent} of ${em.length}</span>`:`<span class="emark warn">✉ ${sent} of ${em.length} vendor emails sent${toSend.length?` · ${toSend.length} ready to send (${[...new Set(toSend.map(x=>x.p.name))].map(esc).join(", ")})`:""}${noAddr.length?` · ${noAddr.length} ${noAddr.length===1?"needs":"need"} an email address (${noAddr.map(x=>esc(x.e.vendor)+", "+esc(x.p.name)).join("; ")})`:""}</span>`):"";}
+  $("sub").textContent=`${act.length} properties · ${act.filter(p=>stage(p)!=="owner").length} owner dates confirmed · ${act.filter(p=>["booked","complete"].includes(stage(p))).length} fully booked · ${act.filter(p=>p.seasonComplete).length} complete`;
+  const SC=PROPS.filter(p=>!pmFilter||pmOf(p)===pmFilter);
+  $("pmchips").innerHTML=`<label class="pmsel"><span class="slabel">Property manager</span><select data-pmsel="1" aria-label="Show properties for">${[["","All managers ("+PROPS.length+")"],...PMS.map(m=>[m,m+" ("+PROPS.filter(p=>pmOf(p)===m).length+")"])].map(([k,l])=>`<option value="${esc(k)}"${(pmFilter||"")===k?" selected":""}>${esc(l)}</option>`).join("")}</select></label>`+(canWrite?(addingProp?"":`<button type="button" class="btn ghost" data-addprop="1">+ Add property</button>`):"");
+  $("addprop").innerHTML=addingProp?`<div class="vform"><div class="frow"><label class="grow">Property name<input id="np-name" placeholder="e.g. 12 Main Street"></label><label class="grow">Town<input id="np-town"></label><label class="grow">Owner<input id="np-owner"></label></div><div class="frow"><label>Type<select id="np-type">${TYPE_ORDER.map(t=>`<option>${t}</option>`).join("")}</select></label><label>Property manager<select id="np-pm">${PMS.map(m=>`<option${m===(pmFilter||"Jerry Horan")?" selected":""}>${esc(m)}</option>`).join("")}</select></label><label class="grow">Street address<input id="np-addr"></label></div><div class="frow"><button type="button" class="btn" data-saveprop="1">Add property</button><button type="button" class="linkbtn" data-cancelprop="1">Cancel</button></div></div>`:"";
+  $("filters").innerHTML=[[null,"All",SC.length],...STAGES.map(([k,l])=>[k,l,SC.filter(p=>stage(p)===k).length])].map(([k,l,n])=>`<button type="button" class="chip" data-filter="${k??""}" aria-pressed="${filter===k}">${l}<span class="ct">${n}</span></button>`).join("");
+  const order={owner:0,booking:1,booked:2,complete:3,out:4};
+  const isR=p=>/^raffles/i.test(p.name), rSlot=Math.min(...PROPS.filter(isR).map(p=>p.order),99);
+  const slot=p=>isR(p)?rSlot:p.order;
+  const list=SC.filter(p=>!filter||stage(p)===filter).slice().sort((a,b)=>(order[stage(a)]>=3?1:0)-(order[stage(b)]>=3?1:0)||slot(a)-slot(b)||a.name.localeCompare(b.name,undefined,{numeric:true}));
+  $("sorts").innerHTML=`<span class="slabel">Sort</span>`+[["default","Portfolio order"],["type","By type"]].map(([k,l])=>`<button type="button" class="chip" data-sort="${k}" aria-pressed="${sortMode===k}">${l}</button>`).join("");
+  let html="";
+  if(sortMode==="type"){
+    const ti=p=>{const i=TYPE_ORDER.indexOf(p.type);return i<0?9:i};
+    const done=p=>order[stage(p)]>=3?1:0;
+    const byType=list.slice().sort((a,b)=>done(a)-done(b)||ti(a)-ti(b)||a.name.localeCompare(b.name,undefined,{numeric:true}));
+    let last=null;
+    byType.forEach(p=>{const g=done(p)?"Complete / opted out":(p.type||"Other");if(g!==last){const n=byType.filter(x=>(done(x)?"Complete / opted out":(x.type||"Other"))===g).length;html+=`<div class="ghead">${esc(g)}<span>${n}</span></div>`;last=g}html+=propCard(p)});
+  } else html=list.map(propCard).join("");
+  $("props").innerHTML=list.length?html:`<div class="notice">No properties in this group.</div>`;
+  renderContacts();
+  $("vendorNames").innerHTML=[...new Set(visits.map(v=>v.vendor).filter(Boolean).concat(VENDORS.map(v=>v.name)))].sort().map(n=>`<option value="${esc(n)}">`).join("");
+}
+
+function propCard(p){
+  const st=stage(p), [,label,cls]=STAGES.find(s=>s[0]===st), f=p.flow||{};
+  const nd=needed(p), cn=confirmedN(p);
+  const meta=[town(p),p.owner,p.type,"PM: "+pmOf(p)].filter(Boolean).join(" · ");
+  const open=openSet.has(p.id);
+  const faded=st==="complete"||st==="out";
+  let body="";
+  if(st==="out") body=`<div class="step"><div class="done-line">Opted out this season.${canWrite?` <button type="button" class="linkbtn" data-optin="${p.id}">Opt back in</button>`:""}</div></div>`;
+  else body=ownerStep(p)+vendorStep(p)+closeStep(p);
+  return `<details class="prop${faded?" faded":""}" data-pid="${p.id}"${open?" open":""}><summary>
+    <span class="pname"><span class="num">${String(p.order).padStart(2,"0")}</span>${esc(p.name)}</span>
+    <span class="pmeta">${esc(meta)}${f.clientDate&&st!=="out"?` · Maintenance ${fmtDate(f.clientDate)}${f.clientDate2&&f.clientDate2!==f.clientDate?" to "+fmtDate(f.clientDate2):""}`:""}</span>
+    <span class="pstat"><span class="pill ${cls}">${label}</span>${st!=="out"&&nd.length?`<span class="pcount">${cn} of ${nd.length} vendors confirmed</span>`:""}${(()=>{if(st==="out"||!f.client)return "";const em=bookingEmails(p);if(!em.length)return "";const n=em.filter(e=>e.sent).length;return n===em.length?`<span class="emark ok sm">✓ emails sent</span>`:`<span class="emark warn sm">✉ ${n} of ${em.length} sent</span>`})()}</span>
+  </summary><div class="pbody">${body}</div></details>`;
+}
+
+function detailsBlock(p){
+  if(editDetails===p.id) return `<div class="frow"><label class="grow">Street address<input id="pa-${p.id}" value="${esc(p.address||"")}" placeholder="Street, town, ZIP"></label><label class="grow">Access / parking<input id="pc-${p.id}" value="${esc(p.access||"")}" placeholder="Lockbox, concierge, parking"></label></div><div class="frow"><button type="button" class="btn" data-savedetails="${p.id}">Save</button><button type="button" class="linkbtn" data-canceldetails="1">Cancel</button></div>`;
+  return `<div class="pdetails"><span><b>Property manager</b> <select data-pm="${p.id}" ${canWrite?"":"disabled"} aria-label="Property manager">${PMS.map(m=>`<option${m===pmOf(p)?" selected":""}>${esc(m)}</option>`).join("")}</select></span><span><b>Address</b> ${p.address?esc(p.address):`<span class="warnt">Not on file</span>`}</span>${p.access?`<span><b>Access</b> ${esc(p.access)}</span>`:""}${canWrite?`<button type="button" class="linkbtn" data-editdetails="${p.id}">Edit</button>`:""}</div>`;
+}
+function ownerStep(p){
+  const f=p.flow||{};
+  if(f.client&&editingProp!==p.id) return `<div class="step"><div class="sh"><span class="n">01</span><h3>Owner date</h3></div>${detailsBlock(p)}
+    <div class="done-line"><span class="ok">✓ Confirmed with owner</span><span>${fmtDate(f.clientDate)}${f.clientDate2&&f.clientDate2!==f.clientDate?" to "+fmtDate(f.clientDate2):""}</span>${f.clientNote?`<span class="hint">${esc(f.clientNote)}</span>`:""}${canWrite?`<button type="button" class="linkbtn" data-editowner="${p.id}">Change</button>`:""}</div></div>`;
+  return `<div class="step"><div class="sh"><span class="n">01</span><h3>Owner date</h3><span class="hint">Confirm the maintenance date with the owner.</span></div>${detailsBlock(p)}
+    <div class="frow"><label>Start<input type="date" id="od1-${p.id}" value="${esc(f.clientDate||"")}"></label><label>End (optional)<input type="date" id="od2-${p.id}" value="${esc(f.clientDate2||"")}"></label><label class="grow">Notes<input id="on-${p.id}" value="${esc(f.clientNote||"")}" placeholder="Who you spoke with, access"></label></div>
+    ${canWrite?`<div class="frow"><button type="button" class="btn" data-ownerok="${p.id}">Owner confirmed this date</button>${editingProp===p.id?`<button type="button" class="linkbtn" data-canceledit="1">Cancel</button>`:""}</div>`:""}</div>`;
+}
+
+function vendorStep(p){
+  const f=p.flow||{};
+  const rows=pv(p).slice().sort((a,b)=>(a.skip?1:0)-(b.skip?1:0)||vkey(a.vendor).localeCompare(vkey(b.vendor))||a.trade.localeCompare(b.trade));
+  const locked=!f.client;
+  const r=rows.map(v=>{
+    const info=isVendor(v)?vendorInfo(v.vendor):null;
+    const dis=!canWrite?"disabled":"";
+    if(editRow===v.id) return editForm(v,p);
+    return `<div class="vrow${v.skip?" off":""}">
+      <span class="need"><input type="checkbox" data-need="${v.id}" ${v.skip?"":"checked"} ${dis} aria-label="Needed: ${esc(v.trade)}"></span>
+      <span class="vname"><b>${v.vendor?esc(v.vendor):`<span class="tbd">Vendor TBD</span>`}</b><span class="work">${esc(v.trade)}${v.window?" · "+esc(fmtTime(v.window)):""}</span>${(v.scope||[]).length?`<ul class="scope">${v.scope.map(x=>`<li class="${/^RED/.test(x)?"red":""}">${esc(x.replace(/^(RED|YELLOW): /,""))}</li>`).join("")}</ul>`:""}${info&&info.email?`<span class="contact">${info.contact?esc(info.contact)+" · ":""}${esc(info.email)}${info.phone?" · "+esc(info.phone):""}</span>`:""}</span>
+      <span class="dt"><input type="date" data-vdate="${v.id}" value="${esc(effDate(v,p))}" ${dis||v.skip?"disabled":""} aria-label="Date for ${esc(v.trade)}"><select data-vtime="${v.id}" ${dis||v.skip?"disabled":""} aria-label="Arrival time for ${esc(v.trade)}">${timeOpts(v.window||"")}</select></span>
+      <span class="seg" role="group" aria-label="Status">${STAT.map(s=>`<button type="button" class="s-${s.k}" data-vstat="${v.id}|${s.k}" aria-pressed="${(v.status||"todo")===s.k}" ${dis||v.skip?"disabled":""}>${s.l}</button>`).join("")}</span>
+      <span class="vtools">${canWrite?`<button type="button" class="linkbtn" data-edit="${v.id}">Edit</button>`:""}${v.notes?`<span class="hint">${esc(v.notes)}</span>`:""}</span>
+    </div>`}).join("");
+  const em=bookingEmails(p);
+  return `<div class="step"><div class="sh"><span class="n">02</span><h3>Book vendors</h3><span class="hint">${locked?"Confirm the owner date first.":"Checked = book this vendor this season. Uncheck anything not needed. Mark each vendor Contacted, then Confirmed."}</span></div>
+    <div class="vlist"><div class="vrow vhead"><span>Needed?</span><span>Vendor · work</span><span>Date · arrival</span><span>Status</span></div>${r||`<div class="notice">No vendors listed yet.</div>`}</div>
+    ${canWrite?(addFor===p.id?editForm(null,p):`<div class="frow"><button type="button" class="btn ghost" data-addv="${p.id}">+ Add vendor from list</button></div>`):""}
+    ${em.length?`<div class="sh"><h3 style="font-size:15px">Emails to vendors</h3><span class="hint">This property only. Opens a ready-to-send Outlook email, cc you. Opening it marks that vendor Email sent (green).</span></div>${(()=>{const q=em.filter(e=>e.mailto&&!e.sent&&!e.missing);if(!q.length)return "";const n=q[0];return `<div class="sendall"><span><b>Send all for ${esc(p.name)}</b> · ${q.length} left · next: ${esc(n.vendor)}</span><a class="btn" href="${esc(n.mailto)}" target="_blank" rel="noopener" data-sendnext="${p.id}|${esc(n.vendor)}">Open next in Outlook</a></div>`})()}<div class="emails">${em.map((e,i)=>`<div class="em${e.sent?" sent":""}"><span><b>${esc(e.vendor)}</b>${e.sent?`<span class="sentb">✓ Email sent${e.sentAt?" "+fmtDate(e.sentAt.slice(0,10)):""}</span>`:""} · ${esc(e.jobs)}${e.missing?` · <span class="warnt">${e.missing} without a date</span>`:""}<span class="addr" style="display:block">${e.email?esc(e.email)+(e.cc?" · Cc "+esc(e.cc):""):`<span class="warnt">No email on file</span>`}</span></span><span>${e.mailto?`<a class="btn" href="${esc(e.mailto)}" target="_blank" rel="noopener" data-mailsent="${p.id}|${i}">${e.sent?"Open again in Outlook":"Open in Outlook"}</a> `:""}<button type="button" class="chip" data-copyemail="${p.id}|${i}">Copy email</button></span></div>`).join("")}</div>`:""}
+  </div>`;
+}
+
+const ME="jhoran@thelagassegroup.com";
+function bookingEmails(p){
+  const by={};
+  needed(p).filter(isVendor).forEach(v=>{const k=vkey(v.vendor);(by[k]=by[k]||[]).push(v)});
+  const where=p.address?(p.address.toLowerCase().startsWith(p.name.toLowerCase().split(" ").slice(0,2).join(" "))?[p.address]:[p.name,p.address]):[p.name,town(p)].filter(Boolean);
+  return Object.entries(by).map(([vendor,list])=>{
+    list.sort((a,b)=>(effDate(a,p)||"9999").localeCompare(effDate(b,p)||"9999"));
+    const info=vendorInfo(list[0].vendor), first=(info&&info.contact||"").split(" ")[0];
+    const dates=[...new Set(list.map(v=>effDate(v,p)).filter(Boolean))];
+    const oneDate=dates.length===1&&list.every(v=>effDate(v,p));
+    const times=[...new Set(list.map(v=>v.window||""))];
+    const oneTime=times.length===1;
+    const hasItems=list.some(v=>(v.scope||[]).length);
+    const jobs=list.map((v,n)=>{
+      const L=[`${n+1}. ${v.trade}`];
+      if(!oneDate)L.push(`   Date: ${effDate(v,p)?fmtDate(effDate(v,p)):"to be set"}`);
+      if(!oneTime)L.push(`   Arrival: ${fmtTime(v.window)||"please reply with your arrival time"}`);
+      const pd=p.prioDone||{};const sc=(v.scope||[]).map(x=>{const m=x.match(/^(RED|YELLOW): (.*)$/);return m?{k:m[1],t:m[2]}:{k:"",t:x}}).filter(x=>!(x.k==="RED"&&pd[hkey((v.vendor||"Vendor TBD")+"|"+x.t)]));
+      const red=sc.filter(x=>x.k==="RED"), oth=sc.filter(x=>x.k!=="RED");
+      L.push(sc.length?"   Standard seasonal service, plus review each Procore inspection item below.":"   Standard seasonal service.");
+      if(red.length)L.push("   Priority items (Procore):",...red.map(x=>"   • "+x.t));
+      if(oth.length)L.push("   Also check (Procore):",...oth.map(x=>"   • "+x.t));
+      if(/hvac|heat|air|boiler/i.test(v.trade))L.push("   Filters: bring replacement filters for every unit you service.");
+      return L.join("\n");
+    }).join("\n\n");
+    const subject=`Maintenance visit, ${p.name}${oneDate?", "+fmtDate(dates[0]):""}`;
+    const access=p.type!=="Highrise"&&p.access?`Access: ${p.access}\n`:"";
+    const body=`Hello ${first||vendor},\n\nPlease confirm the maintenance visit below.\n\nWHEN AND WHERE\nProperty: ${where.join(", ")}\n${oneDate?`Date: ${fmtDate(dates[0])}\n`:""}${oneTime?`Arrival: ${fmtTime(times[0])||"please reply with your arrival time"}\n`:""}${access}\nWORK\n${jobs}\n\nWHAT I NEED FROM YOU\n1. Reply to confirm the date and arrival time.\n2. ${hasItems?"On site, review each Procore item listed above.":"Complete the service listed above."}\n3. After the visit, send me a short report: ${hasItems?"what you found on each item, ":""}${list.some(v=>/hvac|heat|air|boiler/i.test(v.trade))?"filters replaced, ":""}and any recommended repairs.\n\nThank you,\n${SIGFOR(p)}`;
+    const cc=[info&&info.cc,pmOf(p)==="Jerry Horan"?ME:""].filter(Boolean).join(";");
+    const mailto=info&&info.email?`mailto:${info.email}?cc=${encodeURIComponent(cc)}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`:"";
+    return {vendor,list,jobs:list.map(v=>v.trade).join(", "),missing:list.filter(v=>!effDate(v,p)).length,email:info&&info.email,cc:info&&info.cc,subject,body,mailto,
+      sent:list.every(v=>(v.status||"todo")!=="todo"),sentAt:list.map(v=>v.emailed||"").sort().pop()||"",text:`Subject: ${subject}\n\n${body}`};
+  });
+}
+function renderSendAll(){
+  const q=sendQueue(), el=$("sendall"); if(!el)return;
+  if(!q.length){el.innerHTML="";return}
+  const n=q[0];
+  el.innerHTML=`<div class="sendall"><span><b>Send all vendor emails</b> · ${q.length} ready · next: ${esc(n.e.vendor)}, ${esc(n.p.name)}</span><a class="btn" href="${esc(n.e.mailto)}" target="_blank" rel="noopener" data-sendnext="${n.p.id}|${esc(n.e.vendor)}">Open next in Outlook</a><span class="hint">Each tap opens one email, cc you. Press Send in Outlook, then tap again for the next.</span></div>`;
+}
+function sendQueue(){
+  return PROPS.filter(p=>!p.optedOut&&!p.seasonComplete&&p.flow&&p.flow.client).sort((a,b)=>(a.flow.clientDate||"").localeCompare(b.flow.clientDate||""))
+    .flatMap(p=>bookingEmails(p).filter(e=>e.mailto&&!e.sent&&!e.missing).map(e=>({p,e})));
+}
+async function markContacted(list){for(const v of list){if((v.status||"todo")==="todo"){try{await db.doc("visits/"+v.id).update({status:"req",emailed:new Date().toISOString(),updated:new Date().toISOString()})}catch(err){handleErr(err)}}}}
+
+function closeStep(p){
+  const f=p.flow||{}, dis=canWrite?"":"disabled";
+  const oi=p.openItems||[];
+  return `${oi.length?`<div class="step"><details class="oi"><summary><span class="n">!</span> Other open items from inspections (${oi.length}) · not sent to vendors</summary><ul class="scope">${oi.map(x=>`<li class="${/RED/.test(x)?"red":""}">${esc(x.replace(/(RED|YELLOW): /,""))}</li>`).join("")}</ul></details></div>`:""}<div class="step"><div class="sh"><span class="n">03</span><h3>Close out</h3></div>
+    <div class="checks">
+      <label><input type="checkbox" data-flag="${p.id}|procore" ${f.procore?"checked":""} ${dis}> Entered in Procore</label>
+      <label><input type="checkbox" data-season="${p.id}" ${p.seasonComplete?"checked":""} ${dis}> Season complete</label>
+    </div>
+    ${canWrite?`<div><button type="button" class="linkbtn" data-optout="${p.id}">Owner opted out this season</button></div>`:""}</div>`;
+}
+
+/* vendor contacts */
+function renderContacts(){
+  $("contacts").innerHTML="";return;
+  const el=$("contacts"), d=el.querySelector("details"), open=d?d.open:false;
+  const all={};
+  visits.filter(v=>isVendor(v)&&!v.skip).forEach(v=>{const p=PROPS.find(x=>x.name===v.property);if(!p||p.optedOut)return;const k=vkey(v.vendor);(all[k]=all[k]||{name:k,raw:v.vendor,list:[]}).list.push(v)});
+  const t=today(), end=addDays(t,14);
+  const rows=Object.values(all).sort((a,b)=>a.name.localeCompare(b.name)).map((x,i)=>{
+    const info=vendorInfo(x.raw)||vendorInfo(x.name);
+    const soon=x.list.filter(v=>{const d=effDate(v);return d&&d>=t&&d<=end&&v.status!=="done"});
+    const ed=editContact===x.name;
+    return `<div class="crow"><div class="cv"><b>${esc(x.name)}</b>${ed?`<span class="cedit"><input id="cContact" placeholder="Contact name" value="${esc(info&&info.contact||"")}"><input id="cEmail" type="email" placeholder="name@company.com" value="${esc(info&&info.email||"")}"><input id="cPhone" placeholder="Phone" value="${esc(info&&info.phone||"")}"><button type="button" class="chip" data-savecontact="${esc(x.name)}">Save</button><button type="button" class="linkbtn" data-cancelcontact="1">Cancel</button></span>`:`<span class="addr">${info&&info.email?`${info.contact?esc(info.contact)+" · ":""}${esc(info.email)}${info.phone?" · "+esc(info.phone):""}`:`<span class="warnt">No email on file</span>`}${canWrite?` <button type="button" class="linkbtn" data-editcontact="${esc(x.name)}">${info&&info.email?"Edit":"Add"}</button>`:""}</span>`}</div>
+      <span>${soon.length?`<button type="button" class="chip" data-reminder="${esc(x.name)}">Copy 2-week reminder (${soon.length})</button>`:`<span class="addr">No visits in the next 14 days</span>`}</span></div>`;
+  }).join("");
+  const missing=Object.values(all).filter(x=>!((vendorInfo(x.raw)||vendorInfo(x.name)||{}).email)).length;
+  el.innerHTML=`<details class="contacts"${open?" open":""}><summary>Vendor contacts &amp; weekly reminders<span class="rc">${Object.keys(all).length} vendors${missing?` · ${missing} missing an email`:""}</span></summary>${rows||`<div class="crow">No vendors yet.</div>`}</details>`;
+}
+function reminderText(name){
+  const t=today(), end=addDays(t,14);
+  const list=visits.filter(v=>isVendor(v)&&!v.skip&&vkey(v.vendor)===name&&v.status!=="done").filter(v=>{const p=PROPS.find(x=>x.name===v.property);const d=effDate(v,p);return p&&!p.optedOut&&d&&d>=t&&d<=end}).sort((a,b)=>effDate(a).localeCompare(effDate(b)));
+  const info=vendorInfo(list[0]?.vendor||name), first=(info&&info.contact||"").split(" ")[0];
+  const lines=list.map(v=>{const p=PROPS.find(x=>x.name===v.property);return `• ${fmtDate(effDate(v,p))}${v.window?", "+fmtTime(v.window):""}: ${v.trade} at ${v.property}${p&&p.town?", "+p.town:""}`}).join("\n");
+  return `Subject: Upcoming visits with The Lagassé Group, week of ${fmtDate(t)}\n\nHello ${first||name},\n\nA reminder of your scheduled visits with us over the next two weeks:\n\n${lines}\n\nPlease reply to confirm, or let me know if anything needs to change.\n\nThank you,\n${SIG}`;
+}
+
+/* writes */
+async function upd(path,data){if(!db||!canWrite)return;if(busy.has(path))return;busy.add(path);try{await db.doc(path).update({...data})}catch(e){handleErr(e)}finally{busy.delete(path)}}
+async function saveOwner(id){
+  const p=PROPS.find(x=>x.id===id); const d1=$("od1-"+id).value, d2=$("od2-"+id).value, note=$("on-"+id).value.trim();
+  if(!d1){toast("Enter the maintenance date");$("od1-"+id).focus();return}
+  if(d2&&d2<d1){toast("End date is before the start date");return}
+  const old=(p.flow||{}).clientDate||"";
+  await upd("properties/"+id,{flow:{client:true,clientDate:d1,clientDate2:d2,clientNote:note}});
+  const follow=pv(p).filter(v=>v.date&&(v.date===old||v.date===d1));
+  for(const v of follow) await upd("visits/"+v.id,{date:"",updated:new Date().toISOString()});
+  editingProp=null; toast(`Owner date saved. All vendors set to ${fmtDate(d1)}.`);
+}
+
+
+
+
+/* report export: Word and PDF */
+function repDoc(){
+  const D=repData(),S=D.score,t=D.t,yr=new Date().getFullYear();
+  const B=[];
+  B.push({k:"eyebrow",x:"The Lagassé Group · Client Care Services · Internal"});
+  B.push({k:"title",x:"Maintenance Plan Status"});
+  B.push({k:"sub",x:`Client Care Services property management · as of ${fmtDate(t)}, ${yr}`});
+  B.push({k:"h",x:"01  Scoreboard"});
+  B.push({k:"table",head:["Measure","Count"],w:[3,1],rows:[["Active properties",S.props],["Owner dates set",S.owner],["Fully booked",S.booked],["Season complete",S.complete],["Vendor jobs",S.vtotal],["Confirmed",S.vconf],["Contacted",S.vcont],["Not contacted",S.vtodo]].map(r=>[r[0],String(r[1])])});
+  const redN=D.rows.reduce((n,r)=>n+r.reds.length,0);
+  B.push({k:"p",x:`${S.props} active properties${D.out.length?`, ${D.out.length} opted out (${D.out.map(p=>p.name).join(", ")})`:""}. ${redN} priority (red) items open.`});
+  B.push({k:"h",x:"02  Property status"});
+  B.push({k:"table",head:["Property","Manager","Type","Owner date","Vendors confirmed","Status","Priority"],w:[3,1.6,1.8,2.2,1.5,1.9,1.1],rows:D.rows.map(r=>[r.p.name,pmOf(r.p),r.p.type||"",r.date?fmtDate(r.date)+(r.date2&&r.date2!==r.date?" to "+fmtDate(r.date2):""):"Not set",r.nd?`${r.cn} / ${r.nd}`+(r.tbd?` (${r.tbd} TBD)`:""):"None",r.label,String(r.reds.length)])});
+  B.push({k:"h",x:"03  Needs attention"});
+  const L=[];
+  if(D.noOwner.length)L.push(`Owner date not set (${D.noOwner.length}): ${D.noOwner.map(r=>r.p.name).join(", ")}`);
+  if(D.unconfSoon.length)L.push(`Not yet confirmed, visit within 14 days (${D.unconfSoon.length}): ${D.unconfSoon.map(x=>`${vkey(x.v.vendor)} at ${x.p.name}, ${fmtDate(x.d)}${x.n>1?` (${x.n} jobs)`:""}`).join("; ")}`);
+  if(D.noEmail.length)L.push(`Vendors with no email on file (${D.noEmail.length}): ${D.noEmail.join(", ")}`);
+  if(!L.length)L.push("Nothing outstanding.");
+  B.push({k:"list",items:L});
+  if(redN){B.push({k:"h3",x:"Priority items from inspections"});B.push({k:"table",head:["Property","Who","Item"],w:[2,2,6],rows:D.rows.flatMap(r=>r.reds.map(x=>[r.p.name,vkey(x.who),x.text]))})}
+  B.push({k:"h",x:"04  Next 14 days"});
+  if(D.upcoming.length)B.push({k:"table",head:["Date","Property","Vendor","Work","Status"],w:[2,2.6,2.4,2.4,1.6],rows:D.upcoming.map(x=>[fmtDate(x.d),x.p.name,vkey(x.v.vendor),x.v.trade||"",stLabel(x.v.status)])});
+  else B.push({k:"p",x:"No vendor visits in the next 14 days."});
+  B.push({k:"foot",x:`The Lagassé Group · 1 Tech Circle, PO Box 3535, Natick, MA 01760 · (508) 686-5040 · Internal edition · ${fmtDate(t)}`});
+  return {B,name:`Maintenance Plan Status ${t}`};
+}
+const LIBS={docx:["https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"],pdf:["https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js","https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"]};
+const loaded={};
+function loadScript(u){return loaded[u]=loaded[u]||new Promise((res,rej)=>{const e=document.createElement("script");e.src=u;e.onload=res;e.onerror=()=>{delete loaded[u];rej(new Error("Could not load "+u))};document.head.appendChild(e)})}
+async function buildDocx(R){
+  const X=window.docx, G="283D2A", F="Times New Roman";
+  const run=(text,o={})=>new X.TextRun({text,font:F,size:o.size||21,bold:o.bold,color:o.color||"000000",italics:o.it});
+  const bd={style:X.BorderStyle.SINGLE,size:4,color:G};
+  const kids=[];
+  R.B.forEach(b=>{
+    if(b.k==="eyebrow")kids.push(new X.Paragraph({children:[run(b.x.toUpperCase(),{size:16,color:G})]}));
+    else if(b.k==="title")kids.push(new X.Paragraph({spacing:{before:60,after:60},children:[run(b.x,{size:40,bold:true,color:G})]}));
+    else if(b.k==="sub")kids.push(new X.Paragraph({spacing:{after:200},border:{bottom:{style:X.BorderStyle.SINGLE,size:8,color:G,space:6}},children:[run(b.x,{size:20,color:G})]}));
+    else if(b.k==="h")kids.push(new X.Paragraph({spacing:{before:280,after:100},children:[run(b.x,{size:28,bold:true,color:G})]}));
+    else if(b.k==="h3")kids.push(new X.Paragraph({spacing:{before:160,after:80},children:[run(b.x,{size:23,bold:true})]}));
+    else if(b.k==="p")kids.push(new X.Paragraph({spacing:{before:80,after:80},children:[run(b.x)]}));
+    else if(b.k==="foot")kids.push(new X.Paragraph({spacing:{before:360},children:[run(b.x,{size:16,color:G})]}));
+    else if(b.k==="list")b.items.forEach(i=>kids.push(new X.Paragraph({bullet:{level:0},spacing:{after:60},children:[run(i)]})));
+    else if(b.k==="table"){
+      const tot=b.w.reduce((a,c)=>a+c,0), W=9360, cw=b.w.map(x=>Math.round(W*x/tot));
+      const cell=(t,i,hd)=>new X.TableCell({width:{size:cw[i],type:X.WidthType.DXA},shading:hd?{type:X.ShadingType.CLEAR,fill:G,color:"auto"}:undefined,margins:{top:60,bottom:60,left:90,right:90},borders:{top:bd,bottom:bd,left:bd,right:bd},children:[new X.Paragraph({children:[run(String(t),{size:hd?18:19,bold:hd,color:hd?"FFFFFF":undefined})]})]});
+      kids.push(new X.Table({width:{size:W,type:X.WidthType.DXA},columnWidths:cw,rows:[new X.TableRow({tableHeader:true,children:b.head.map((h,i)=>cell(h,i,true))}),...b.rows.map(r=>new X.TableRow({cantSplit:true,children:r.map((c,i)=>cell(c,i,false))}))]}));
+    }
+  });
+  const doc=new X.Document({creator:"The Lagassé Group",title:R.name,sections:[{properties:{page:{size:{width:12240,height:15840},margin:{top:1080,bottom:1080,left:1440,right:1440}}},children:kids}]});
+  return await X.Packer.toBlob(doc);
+}
+function buildPdf(R){
+  const {jsPDF}=window.jspdf, doc=new jsPDF({unit:"pt",format:"letter"}), M=54, PW=612-2*M, G=[40,61,42];
+  let y=M;
+  const need=h=>{if(y+h>792-M){doc.addPage();y=M}};
+  const txt=(x,size,style,color,gapB)=>{doc.setFont("times",style);doc.setFontSize(size);doc.setTextColor(...color);const ls=doc.splitTextToSize(x,PW);ls.forEach(l=>{need(size*1.25);doc.text(l,M,y+size);y+=size*1.25});y+=gapB||0};
+  R.B.forEach(b=>{
+    if(b.k==="eyebrow")txt(b.x.toUpperCase(),8,"normal",G,2);
+    else if(b.k==="title")txt(b.x,22,"bold",G,2);
+    else if(b.k==="sub"){txt(b.x,10,"normal",G,4);doc.setDrawColor(...G);doc.setLineWidth(1);doc.line(M,y,M+PW,y);y+=10}
+    else if(b.k==="h"){y+=10;need(40);txt(b.x,14,"bold",G,4)}
+    else if(b.k==="h3"){y+=6;txt(b.x,11.5,"bold",[0,0,0],3)}
+    else if(b.k==="p")txt(b.x,10.5,"normal",[0,0,0],4);
+    else if(b.k==="foot"){y+=14;txt(b.x,8,"normal",G)}
+    else if(b.k==="list")b.items.forEach(i=>{doc.setFont("times","normal");doc.setFontSize(10.5);const ls=doc.splitTextToSize(i,PW-14);ls.forEach((l,j)=>{need(13);doc.setTextColor(30,42,32);if(!j)doc.text("•",M+2,y+10.5);doc.text(l,M+14,y+10.5);y+=13});y+=3});
+    else if(b.k==="table"){
+      const tot=b.w.reduce((a,c)=>a+c,0);
+      doc.autoTable({startY:y,margin:{left:M,right:M},head:[b.head],body:b.rows,theme:"grid",
+        styles:{font:"times",fontSize:9.5,cellPadding:4,lineColor:G,lineWidth:0.5,textColor:[0,0,0]},
+        headStyles:{fillColor:G,textColor:255,fontStyle:"bold"},
+        columnStyles:Object.fromEntries(b.w.map((w,i)=>[i,{cellWidth:PW*w/tot}]))});
+      y=doc.lastAutoTable.finalY+8;
+    }
+  });
+  const n=doc.getNumberOfPages();for(let i=1;i<=n;i++){doc.setPage(i);doc.setFont("times","normal");doc.setFontSize(8);doc.setTextColor(...G);doc.text(`Page ${i} of ${n}`,612-M,792-30,{align:"right"})}
+  return doc.output("blob");
+}
+async function exportReport(kind,btn){
+  const dl=DL;
+  if(!dl){toast("Downloads are not available in this view");return}
+  const old=btn.textContent;btn.disabled=true;btn.textContent="Preparing…";
+  try{
+    for(const u of LIBS[kind]) await loadScript(u);
+    const R=repDoc();
+    const data=kind==="docx"?await buildDocx(R):buildPdf(R);
+    await dl.save({filename:R.name+"."+kind,data});
+    toast("Saved");
+  }catch(e){if(e&&e.code==="declined"){}else toast(e&&e.message?e.message:"Could not create the file")}
+  finally{btn.disabled=false;btn.textContent=old}
+}
+
+/* vendors tab */
+let vEdit=null, vAdd=false;
+function vendorRoster(){
+  const m={};
+  VENDORS.forEach(v=>{m[v.name]={name:v.name,info:v,props:new Set(),jobs:new Set(),raw:[v.name]}});
+  visits.filter(isVendor).forEach(v=>{const k=vkey(v.vendor);const r=m[k]=m[k]||{name:k,info:vendorInfo(v.vendor),props:new Set(),jobs:new Set(),raw:[]};r.props.add(v.property);r.jobs.add(v.trade);if(!r.raw.includes(v.vendor))r.raw.push(v.vendor)});
+  return Object.values(m).sort((a,b)=>a.name.localeCompare(b.name));
+}
+function vendorCSV(){
+  const q=x=>`"${String(x??"").replace(/"/g,'""')}"`;
+  const rows=[["Company","Services","Contact","Email","Cc","Office phone","Mobile (text)","Notes","Properties"]];
+  vendorRoster().forEach(r=>{const i=r.info||{};rows.push([r.name,i.work||[...r.jobs].join(", "),i.contact,i.email,i.cc,i.phone,i.mobile,i.notes,[...r.props].join("; ")])});
+  return rows.map(r=>r.map(q).join(",")).join("\r\n");
+}
+function vForm(r,k){
+  const i=(r&&r.info)||{};
+  return `<div class="vform">
+   <div class="frow"><label class="grow">Company<input id="vf-name-${k}" value="${esc(r?r.name:"")}"></label><label class="grow">Services<input id="vf-work-${k}" value="${esc(i.work||"")}" placeholder="e.g. HVAC, plumbing"></label></div>
+   <div class="frow"><label class="grow">Contact name<input id="vf-contact-${k}" value="${esc(i.contact||"")}"></label><label class="grow">Email<input id="vf-email-${k}" type="email" value="${esc(i.email||"")}"></label><label class="grow">Cc email<input id="vf-cc-${k}" type="email" value="${esc(i.cc||"")}"></label><label>Office phone<input id="vf-phone-${k}" type="tel" value="${esc(i.phone||"")}"></label><label>Mobile (text)<input id="vf-mobile-${k}" type="tel" value="${esc(i.mobile||"")}"></label></div>
+   <div class="frow"><label class="grow">Notes<input id="vf-notes-${k}" value="${esc(i.notes||"")}" placeholder="Office hours, billing, emergency line"></label></div>
+   <div class="frow"><button type="button" class="btn" data-vsave="${k}">Save</button><button type="button" class="linkbtn" data-vcancel="1">Cancel</button></div></div>`;
+}
+function renderVendors(){
+  const R=vendorRoster(), t=today(), end=addDays(t,14);
+  const missing=R.filter(r=>!(r.info&&r.info.email)).length;
+  $("vendors").innerHTML=`<div class="rep"><div class="rtop"><div><div class="eyebrow">Outside vendors on the maintenance plan</div><h1 class="rtitle">Vendors</h1><div class="sub">${R.length} vendors${missing?` · ${missing} missing an email`:""}</div></div>
+   <div class="hbtns"><button type="button" class="btn ghost" data-vexport="1">Export list (CSV)</button>${canWrite?`<button type="button" class="btn" data-vaddnew="1">+ Add vendor</button>`:""}</div></div>
+   ${vAdd?vForm(null,"new"):""}
+   <div class="vtable">${R.map((r,idx)=>{
+     const i=r.info||{}, soon=reminderText(r.name).includes("• ");
+     if(vEdit===r.name) return `<div class="vcard editing"><b class="vn">${esc(r.name)}</b>${vForm(r,"e"+idx)}</div>`;
+     return `<div class="vcard"><div class="vmain"><b class="vn">${esc(r.name)}</b><span class="vs">${esc(i.work||[...r.jobs].join(", "))}</span>
+       <span class="vc">${i.contact?esc(i.contact)+" · ":""}${i.email?esc(i.email):`<span class="warnt">No email</span>`}${i.cc?" · Cc "+esc(i.cc):""}</span>
+       ${i.phone||i.mobile?`<span class="vc">${i.phone?`Office <a href="tel:${esc(i.phone.replace(/[^\d+]/g,""))}">${esc(i.phone)}</a>`:""}${i.phone&&i.mobile?" · ":""}${i.mobile?`Mobile <a href="tel:${esc(i.mobile.replace(/[^\d+]/g,""))}">${esc(i.mobile)}</a> · <a href="sms:${esc(i.mobile.replace(/[^\d+]/g,""))}">Text</a>`:""}</span>`:""}
+       ${i.notes?`<span class="vc">${esc(i.notes)}</span>`:""}
+       <span class="vp">${r.props.size?[...r.props].map(esc).join(" · "):"Not on any property yet"}</span></div>
+       <div class="vact">${canWrite?`<button type="button" class="linkbtn" data-vedit="${esc(r.name)}">Edit</button>`:""}${i.email?`<button type="button" class="linkbtn" data-copyaddr="${esc(i.email+(i.cc?"; "+i.cc:""))}">Copy email address</button>`:""}${soon?`<button type="button" class="chip" data-reminder="${esc(r.name)}">Copy 2-week reminder</button>`:""}</div></div>`}).join("")}</div></div>`;
+}
+async function saveVendor(k){
+  const g=f=>$("vf-"+f+"-"+k).value.trim();
+  const name=g("name"); if(!name){toast("Enter the company name");return}
+  const email=g("email"), cc=g("cc");
+  for(const e of [email,cc]) if(e&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)){toast("Check the email address: "+e);return}
+  const R=vendorRoster(), r=k==="new"?null:R[Number(k.slice(1))];
+  const data={name,work:g("work"),contact:g("contact"),email,cc,phone:g("phone"),mobile:g("mobile"),notes:g("notes")};
+  try{
+    if(r&&r.info&&r.info.id){await db.doc("vendors/"+r.info.id).update({...data,match:[...new Set([...(r.info.match||[]),name.toLowerCase(),...r.raw.map(x=>x.toLowerCase())])]})}
+    else{const id=name.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");await db.collection("vendors").doc(id).set({...data,match:[...new Set([name.toLowerCase(),...(r?r.raw.map(x=>x.toLowerCase()):[])])]})}
+    vEdit=null;vAdd=false;toast("Saved "+name);render();
+  }catch(e){handleErr(e)}
+}
+
+/* priority items */
+let tab="main", prioFilter="open";
+function hkey(s){let h=5381;for(const c of s)h=((h<<5)+h+c.charCodeAt(0))|0;return "k"+(h>>>0).toString(36)}
+function prioItems(p){
+  const done=p.prioDone||{};
+  const a=[...needed(p).flatMap(v=>(v.scope||[]).filter(x=>/^RED/.test(x)).map(x=>({who:v.vendor||"Vendor TBD",work:v.trade,text:x.replace(/^RED: /,"")}))),
+    ...(p.openItems||[]).filter(x=>/RED/.test(x)).map(x=>({who:"TLG",work:(x.match(/^(.*?) · /)||[])[1]||"",text:x.replace(/^.*?RED: /,"")}))];
+  return a.map(x=>{const key=hkey(x.who+"|"+x.text);return {...x,key,done:done[key]||""}});
+}
+function renderPrio(){
+  const act=PROPS.filter(p=>!p.optedOut).slice().sort((a,b)=>a.order-b.order);
+  const all=act.flatMap(p=>prioItems(p).map(x=>({...x,p})));
+  const open=all.filter(x=>!x.done).length;
+  $("prioCount").textContent=open?String(open):"";
+  if(tab!=="prio") return;
+  const dis=canWrite?"":"disabled";
+  const groups=act.map(p=>{const it=prioItems(p).filter(x=>prioFilter==="all"||!x.done);if(!it.length)return "";
+    return `<div class="pg"><h3>${esc(p.name)}<span>${prioItems(p).filter(x=>x.done).length} of ${prioItems(p).length} done</span></h3>${it.map(x=>`<label class="pi${x.done?" done":""}"><input type="checkbox" data-prio="${p.id}|${x.key}" ${x.done?"checked":""} ${dis}><span class="pt">${esc(x.text)}<small>${esc(vkey(x.who))}${x.work?" · "+esc(x.work):""}${x.done?" · completed "+fmtDate(x.done.slice(0,10)):""}</small></span></label>`).join("")}</div>`}).join("");
+  $("prio").innerHTML=`<div class="rep"><div class="rtop"><div><div class="eyebrow">Red items from inspections</div><h1 class="rtitle">Priority Items</h1><div class="sub">${open} open · ${all.length-open} completed · ${all.length} total</div></div>
+    <div class="chips">${[["open","Open"],["all","All"]].map(([k,l])=>`<button type="button" class="chip" data-pfilter="${k}" aria-pressed="${prioFilter===k}">${l}</button>`).join("")}</div></div>
+    ${groups||`<p class="rnote">${prioFilter==="open"?"All priority items are completed.":"No priority items."}</p>`}
+    <p class="rnote">Tick an item when the work is done. To add one, edit a vendor line and start the line with RED:.</p></div>`;
+}
+/* portfolio status report */
+let showReport=false;
+function repData(){
+  const t=today(), end=addDays(t,14);
+  const act=PROPS.filter(p=>!p.optedOut).slice().sort((a,b)=>a.order-b.order);
+  const lines=act.flatMap(p=>needed(p).filter(isVendor).map(v=>({v,p,d:effDate(v,p)})));
+  const cnt=k=>lines.filter(x=>(x.v.status||"todo")===k).length;
+  const rows=act.map(p=>{
+    const nd=needed(p).filter(isVendor), cn=nd.filter(v=>v.status==="sched"||v.status==="done").length;
+    const reds=prioItems(p).filter(x=>!x.done);
+    const [,label]=STAGES.find(s=>s[0]===stage(p));
+    const f=p.flow||{};
+    return {p,label,date:f.client?f.clientDate:"",date2:f.client?f.clientDate2:"",nd:nd.length,cn,reds,tbd:needed(p).filter(v=>!v.vendor).length};
+  });
+  const upcoming=lines.filter(x=>x.d&&x.d>=t&&x.d<=end&&x.v.status!=="done").sort((a,b)=>a.d.localeCompare(b.d)||a.p.name.localeCompare(b.p.name));
+  const noOwner=rows.filter(r=>!r.date&&!r.p.seasonComplete);
+  const uc={};upcoming.filter(x=>x.v.status!=="sched").forEach(x=>{const k=vkey(x.v.vendor)+"|"+x.p.name;(uc[k]=uc[k]||{v:x.v,p:x.p,d:x.d,n:0}).n++});
+  const unconfSoon=Object.values(uc).sort((a,b)=>a.d.localeCompare(b.d));
+  const noEmail=[...new Set(lines.map(x=>vkey(x.v.vendor)))].filter(n=>!((vendorInfo(n)||{}).email)).sort();
+  return {t,act,out:PROPS.filter(p=>p.optedOut),lines,rows,upcoming,noOwner,unconfSoon,noEmail,
+    score:{props:act.length,owner:rows.filter(r=>r.date).length,booked:act.filter(p=>["booked","complete"].includes(stage(p))).length,complete:act.filter(p=>p.seasonComplete).length,
+      vtotal:lines.length,vconf:cnt("sched")+cnt("done"),vcont:cnt("req"),vtodo:cnt("todo")}};
+}
+function sec(n,title){return `<h2 class="rh"><span>${String(n).padStart(2,"0")}</span>${title}</h2>`}
+const stLabel=k=>(STAT.find(s=>s.k===(k||"todo"))||STAT[0]).l;
+function renderReport(){
+  const D=repData(), S=D.score, t=D.t;
+  const tiles=[["Properties",S.props],["Owner dates set",S.owner],["Fully booked",S.booked],["Season complete",S.complete],["Vendor jobs",S.vtotal],["Confirmed",S.vconf],["Contacted",S.vcont],["Not contacted",S.vtodo,S.vtodo>0]];
+  const redN=D.rows.reduce((n,r)=>n+r.reds.length,0);
+  $("report").innerHTML=`<div class="rep">
+  <div class="rtop"><div><div class="eyebrow">The Lagassé Group · Client Care Services · Internal</div><h1 class="rtitle">Maintenance Plan Status</h1><div class="sub">Client Care Services property management · as of ${fmtDate(t)}, ${new Date().getFullYear()}</div></div>
+  <div class="hbtns"><button type="button" class="btn" data-export="docx">Word</button><button type="button" class="btn" data-export="pdf">PDF</button><button type="button" class="btn ghost" id="copyReport">Copy text</button><button type="button" class="btn ghost" id="closeReport">Back to schedule</button></div></div>
+  ${sec(1,"Scoreboard")}
+  <div class="tiles">${tiles.map(([l,n,hot])=>`<div class="tile"><b class="${hot?"hot":""}">${n}</b><span>${l}</span></div>`).join("")}</div>
+  <p class="rnote">${S.props} active properties${D.out.length?`, ${D.out.length} opted out (${D.out.map(p=>esc(p.name)).join(", ")})`:""}. Vendor jobs: ${S.vconf} confirmed + ${S.vcont} contacted + ${S.vtodo} not contacted = ${S.vtotal}. ${redN} priority (red) items open.</p>
+  ${sec(2,"Property status")}
+  <div class="tw"><table class="rt"><thead><tr><th>Property</th><th>Manager</th><th>Type</th><th>Owner date</th><th>Vendors confirmed</th><th>Status</th><th>Priority items</th></tr></thead><tbody>
+  ${D.rows.map(r=>`<tr><td>${esc(r.p.name)}</td><td>${esc(pmOf(r.p))}</td><td>${esc(r.p.type||"")}</td><td>${r.date?fmtDate(r.date)+(r.date2&&r.date2!==r.date?" to "+fmtDate(r.date2):""):`<span class="amb">Not set</span>`}</td><td class="num">${r.nd?`${r.cn} / ${r.nd}`:"None"}${r.tbd?` <span class="amb">(${r.tbd} TBD)</span>`:""}</td><td>${r.label}</td><td class="num ${r.reds.length?"red":""}">${r.reds.length}</td></tr>`).join("")}
+  </tbody></table></div>
+  ${sec(3,"Needs attention")}
+  <ul class="rlist">
+   ${D.noOwner.length?`<li><b>Owner date not set (${D.noOwner.length}):</b> ${D.noOwner.map(r=>esc(r.p.name)).join(", ")}</li>`:""}
+   ${D.unconfSoon.length?`<li><b>Not yet confirmed, visit within 14 days (${D.unconfSoon.length}):</b> ${D.unconfSoon.map(x=>`${esc(vkey(x.v.vendor))} at ${esc(x.p.name)}, ${fmtDate(x.d)}${x.n>1?` (${x.n} jobs)`:""}`).join("; ")}</li>`:""}
+   ${D.noEmail.length?`<li><b>Vendors with no email on file (${D.noEmail.length}):</b> ${D.noEmail.map(esc).join(", ")}</li>`:""}
+   ${!D.noOwner.length&&!D.unconfSoon.length&&!D.noEmail.length?`<li>Nothing outstanding.</li>`:""}
+  </ul>
+  ${redN?`<h3 class="rsub">Priority items from inspections</h3><div class="tw"><table class="rt"><thead><tr><th>Property</th><th>Who</th><th>Item</th></tr></thead><tbody>${D.rows.flatMap(r=>r.reds.map(x=>`<tr><td>${esc(r.p.name)}</td><td>${esc(vkey(x.who))}</td><td>${esc(x.text)}</td></tr>`)).join("")}</tbody></table></div>`:""}
+  ${sec(4,"Next 14 days")}
+  ${D.upcoming.length?`<div class="tw"><table class="rt"><thead><tr><th>Date</th><th>Property</th><th>Vendor</th><th>Work</th><th>Status</th></tr></thead><tbody>${D.upcoming.map(x=>`<tr><td>${fmtDate(x.d)}</td><td>${esc(x.p.name)}</td><td>${esc(vkey(x.v.vendor))}</td><td>${esc(x.v.trade)}</td><td>${stLabel(x.v.status)}</td></tr>`).join("")}</tbody></table></div>`:`<p class="rnote">No vendor visits in the next 14 days.</p>`}
+  <div class="rfoot"><span>The Lagassé Group · 1 Tech Circle, PO Box 3535, Natick, MA 01760 · (508) 686-5040</span><span>Internal edition · ${fmtDate(t)}</span></div>
+  </div>`;
+}
+function reportText(){
+  const D=repData(),S=D.score;
+  const L=[`MAINTENANCE PLAN STATUS, as of ${fmtDate(D.t)}`,`Client Care Services property management, The Lagassé Group`,``,
+  `01 SCOREBOARD`,`• ${S.props} active properties · ${S.owner} owner dates set · ${S.booked} fully booked · ${S.complete} complete`,`• Vendor jobs: ${S.vconf} confirmed, ${S.vcont} contacted, ${S.vtodo} not contacted (${S.vtotal} total)`,
+  ...(D.out.length?[`• Opted out: ${D.out.map(p=>p.name).join(", ")}`]:[]),``,`02 PROPERTY STATUS`,
+  ...D.rows.map(r=>`• ${r.p.name}: ${r.date?"owner date "+fmtDate(r.date):"owner date not set"}; vendors ${r.cn}/${r.nd} confirmed; ${r.label}${r.reds.length?`; ${r.reds.length} priority item${r.reds.length===1?"":"s"}`:""}`),``,
+  `03 NEEDS ATTENTION`,
+  ...(D.noOwner.length?[`• Owner date not set: ${D.noOwner.map(r=>r.p.name).join(", ")}`]:[]),
+  ...(D.unconfSoon.length?[`• Not confirmed, within 14 days: ${D.unconfSoon.map(x=>`${vkey(x.v.vendor)} at ${x.p.name} ${fmtDate(x.d)}${x.n>1?` (${x.n} jobs)`:""}`).join("; ")}`]:[]),
+  ...(D.noEmail.length?[`• No vendor email on file: ${D.noEmail.join(", ")}`]:[]),
+  ...D.rows.flatMap(r=>r.reds.map(x=>`• Priority, ${r.p.name} (${vkey(x.who)}): ${x.text}`)),``,
+  `04 NEXT 14 DAYS`,...(D.upcoming.length?D.upcoming.map(x=>`• ${fmtDate(x.d)}: ${x.p.name}, ${vkey(x.v.vendor)}, ${x.v.trade} (${stLabel(x.v.status)})`):["• No vendor visits scheduled"])];
+  return L.join("\n");
+}
+
+/* inline vendor editor */
+let editRow=null, addFor=null, editDetails=null;
+function pickList(p){
+  const have=new Set(pv(p).map(v=>(vkey(v.vendor)+"|"+v.trade).toLowerCase()));
+  const combos={};
+  visits.filter(v=>v.vendor&&!/lagass/i.test(v.vendor)).forEach(v=>{const k=(vkey(v.vendor)+"|"+v.trade).toLowerCase();if(!have.has(k)&&!combos[k])combos[k]={vendor:v.vendor,trade:v.trade}});
+  return Object.values(combos).sort((a,b)=>vkey(a.vendor).localeCompare(vkey(b.vendor))||a.trade.localeCompare(b.trade));
+}
+function editForm(v,p){
+  const k=v?v.id:"new";
+  const picks=v?[]:pickList(p);
+  return `<div class="vedit-row">${picks.length?`<div class="picks"><span class="plabel">Tap to add</span>${picks.map((x,i)=>`<button type="button" class="pick" data-pick="${p.id}|${i}"><b>${esc(vkey(x.vendor))}</b><span>${esc(x.trade)}</span></button>`).join("")}</div><div class="plabel" style="padding:0 8px">Or type a new one</div>`:""}<div class="frow">
+    <label class="grow">Vendor<input id="ev-${k}" value="${esc(v?v.vendor:"")}" placeholder="Company" list="vendorNames"></label>
+    <label class="grow">Work<input id="et-${k}" value="${esc(v?v.trade:"")}" placeholder="e.g. Generator service"></label>
+    <label>Arrival<select id="ew-${k}">${timeOpts(v?v.window||"":"")}</select></label>
+    <label class="grow">Notes<input id="en-${k}" value="${esc(v?v.notes||"":"")}"></label></div>
+    <div class="frow"><label class="grow">For the vendor: what to check or bring (one per line; start with RED: for priority)<textarea id="es-${k}" rows="3">${esc(v?(v.scope||[]).join("\n"):"")}</textarea></label></div>
+    <div class="frow"><button type="button" class="btn" data-saverow="${k}|${p.id}">${v?"Save":"Add vendor"}</button><button type="button" class="linkbtn" data-cancelrow="1">Cancel</button>${v?`<span style="flex:1"></span><button type="button" class="linkbtn" style="color:var(--red)" data-delrow="${v.id}">Remove from this property</button>`:""}</div></div>`;
+}
+async function saveRow(k,pid){
+  const p=PROPS.find(x=>x.id===pid);
+  const trade=$("et-"+k).value.trim(), vendor=$("ev-"+k).value.trim();
+  if(!trade){toast("Enter the work, e.g. Plumbing");$("et-"+k).focus();return}
+  const body={vendor,trade,window:$("ew-"+k).value.trim(),notes:$("en-"+k).value.trim(),scope:$("es-"+k).value.split("\n").map(x=>x.trim()).filter(Boolean),updated:new Date().toISOString()};
+  try{
+    if(k==="new") await db.collection("visits").add({...body,property:p.name,contact:"",date:"",status:"todo",skip:false});
+    else await db.doc("visits/"+k).update(body);
+    editRow=null;addFor=null;toast("Saved");render();
+  }catch(e){handleErr(e)}
+}
+/* events */
+document.addEventListener("toggle",e=>{const d=e.target;if(d.matches&&d.matches("details.prop")){d.open?openSet.add(d.dataset.pid):openSet.delete(d.dataset.pid)}},true);
+document.addEventListener("change",async e=>{
+  const t=e.target;
+  if(t.dataset.pmsel){pmFilter=t.value||null;render();return}
+  if(t.dataset.pm){await upd("properties/"+t.dataset.pm,{pm:t.value});toast("Assigned to "+t.value);return}
+  if(t.dataset.need){await upd("visits/"+t.dataset.need,{skip:!t.checked,updated:new Date().toISOString()});return}
+  if(t.dataset.vtime){await upd("visits/"+t.dataset.vtime,{window:t.value.trim(),updated:new Date().toISOString()});return}
+  if(t.dataset.vdate){const v=visits.find(x=>x.id===t.dataset.vdate);const od=((PROPS.find(x=>x.name===v.property)||{}).flow||{}).clientDate||"";await upd("visits/"+v.id,{date:t.value===od?"":t.value,updated:new Date().toISOString()});return}
+  if(t.dataset.flag){const [id,k]=t.dataset.flag.split("|");await upd("properties/"+id,{flow:{[k]:t.checked}});return}
+  if(t.dataset.season){await upd("properties/"+t.dataset.season,t.checked?{seasonComplete:true,seasonCompletedAt:new Date().toISOString()}:{seasonComplete:false});if(t.checked)toast("Season complete");return}
+});
+document.addEventListener("click",async e=>{
+  const t=e.target.closest("button"); if(!t) return;
+  const d=t.dataset;
+  if(d.sort){sortMode=d.sort;render();return}
+  if(d.filter!==undefined){filter=d.filter||null;render();return}
+  if(d.ownerok){saveOwner(d.ownerok);return}
+  if(d.editowner){editingProp=d.editowner;render();return}
+  if(d.canceledit){editingProp=null;render();return}
+  if(d.vstat){const [id,s]=d.vstat.split("|");await upd("visits/"+id,{status:s,updated:new Date().toISOString()});return}
+  if(d.edit){editRow=d.edit;addFor=null;render();return}
+  if(d.addv){addFor=d.addv;editRow=null;render();setTimeout(()=>$("ev-new")?.focus(),0);return}
+  if(d.pick){const [pid,i]=d.pick.split("|");const p=PROPS.find(x=>x.id===pid);const x=pickList(p)[Number(i)];if(x){try{await db.collection("visits").add({property:p.name,vendor:x.vendor,trade:x.trade,contact:"",date:"",window:"",status:"todo",notes:"",skip:false,updated:new Date().toISOString()});toast("Added "+vkey(x.vendor)+": "+x.trade)}catch(err){handleErr(err)}}return}
+  if(d.editdetails){editDetails=d.editdetails;render();return}
+  if(d.canceldetails){editDetails=null;render();return}
+  if(d.savedetails){const id=d.savedetails;await upd("properties/"+id,{address:$("pa-"+id).value.trim(),access:$("pc-"+id).value.trim()});editDetails=null;toast("Saved");render();return}
+  if(d.saverow){const [k,pid]=d.saverow.split("|");saveRow(k,pid);return}
+  if(d.cancelrow){editRow=null;addFor=null;render();return}
+  if(d.delrow){if(t.dataset.armed){try{await db.doc("visits/"+d.delrow).delete();editRow=null;toast("Removed")}catch(err){handleErr(err)}}else{t.dataset.armed="1";t.textContent="Tap again to remove";}return}
+  if(d.copyemail){const [id,i]=d.copyemail.split("|");const p=PROPS.find(x=>x.id===id);const em=bookingEmails(p)[Number(i)];if(em)copyText(em.text);return}
+  if(d.export){exportReport(d.export,t);return}
+  if(d.copyaddr){copyText(d.copyaddr);return}
+  if(d.pmf!==undefined){pmFilter=d.pmf||null;render();return}
+  if(d.addprop){addingProp=true;render();setTimeout(()=>$("np-name")?.focus(),0);return}
+  if(d.cancelprop){addingProp=false;render();return}
+  if(d.saveprop){const g=k=>$("np-"+k).value.trim();const name=g("name");if(!name){toast("Enter the property name");return}
+    const id="p"+(Math.max(0,...PROPS.map(p=>Number(String(p.id).replace(/\D/g,""))||0))+1);
+    try{await db.collection("properties").doc(id).set({name,town:g("town"),owner:g("owner"),type:g("type"),pm:g("pm"),address:g("addr"),order:Math.max(0,...PROPS.map(p=>p.order||0))+1,flow:{},vendors:{},openItems:[],prioDone:{}});addingProp=false;toast("Added "+name);render()}catch(err){handleErr(err)}return}
+  if(d.optout){await upd("properties/"+d.optout,{optedOut:true});toast("Marked opted out");return}
+  if(d.optin){await upd("properties/"+d.optin,{optedOut:false});toast("Back in for fall");return}
+  if(d.editcontact){editContact=d.editcontact;renderContacts();setTimeout(()=>$("cEmail")?.focus(),0);return}
+  if(d.cancelcontact){editContact=null;renderContacts();return}
+  if(d.savecontact){
+    const name=d.savecontact, email=$("cEmail").value.trim(), contact=$("cContact").value.trim(), phone=$("cPhone").value.trim();
+    if(email&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){toast("That email address doesn't look right");return}
+    const info=vendorInfo(name);
+    try{if(info) await db.doc("vendors/"+info.id).update({email,contact,phone});
+      else await db.collection("vendors").doc(name.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")).set({name,match:[name.toLowerCase()],email,contact,phone});
+      editContact=null;toast("Saved "+name);}catch(err){handleErr(err)}
+    return}
+  if(d.reminder){copyText(reminderText(d.reminder));return}
+});
+
+function setTab(k){tab=k;showReport=k==="report";document.body.classList.toggle("plain",k!=="main");["main","report","prio","vendors"].forEach(x=>$(x).hidden=x!==k);document.querySelectorAll(".tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.tab===k));render();window.scrollTo(0,0)}
+document.addEventListener("click",e=>{const a=e.target.closest("a[data-mailsent],a[data-sendnext]");if(!a)return;
+  let pid,vend;if(a.dataset.mailsent){const [x,i]=a.dataset.mailsent.split("|");pid=x;const p=PROPS.find(y=>y.id===x);const em=p&&bookingEmails(p)[Number(i)];vend=em&&em.vendor}else{[pid,vend]=a.dataset.sendnext.split("|")}
+  const p=PROPS.find(y=>y.id===pid);const em=p&&bookingEmails(p).find(x=>x.vendor===vend);
+  if(em&&canWrite)setTimeout(()=>markContacted(em.list),400);
+});
+document.addEventListener("click",async e=>{const t=e.target.closest("button,input");if(!t)return;
+  if(t.dataset&&t.dataset.tab){setTab(t.dataset.tab);return}
+  if(t.id==="closeReport"){setTab("main");return}
+  if(t.id==="copyReport"){copyText(reportText());return}
+  if(t.dataset&&t.dataset.vexport){(async()=>{const dl=DL;if(!dl){copyText(vendorCSV());return}try{await dl.save({filename:"TLG Vendor Directory "+today()+".csv",data:vendorCSV()});toast("Saved")}catch(e){if(e&&e.code!=="declined")toast("Could not save the file")}})();return}
+  if(t.dataset&&t.dataset.vaddnew){vAdd=true;vEdit=null;render();return}
+  if(t.dataset&&t.dataset.vedit){vEdit=t.dataset.vedit;vAdd=false;render();return}
+  if(t.dataset&&t.dataset.vcancel){vEdit=null;vAdd=false;render();return}
+  if(t.dataset&&t.dataset.vsave){saveVendor(t.dataset.vsave);return}
+  if(t.dataset&&t.dataset.pfilter){prioFilter=t.dataset.pfilter;renderPrio();return}
+});
+document.addEventListener("change",async e=>{const t=e.target;if(!t.dataset||!t.dataset.prio)return;
+  const [pid,key]=t.dataset.prio.split("|");await upd("properties/"+pid,{prioDone:{[key]:t.checked?new Date().toISOString():""}});});
+(async()=>{
+  if(!window.supabase||SB_KEY.startsWith("PASTE")){$("sub").textContent="Setup needed: add the Supabase key to index.html.";canWrite=false;return}
+  const sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true}});
+  const {data:{session}}=await sb.auth.getSession();
+  if(!session){showLogin(sb);return}
+  $("who").innerHTML=`${esc(session.user.email)} · <button type="button" class="linkbtn" id="signout">Sign out</button>`;
+  $("signout").onclick=async()=>{await sb.auth.signOut();location.reload()};
+  db=makeDb(sb);
+  let tick=null;const later=()=>{clearTimeout(tick);tick=setTimeout(render,30)};
+  db.collection("properties").orderBy("order").onSnapshot(s=>{PROPS=s.docs.map(d=>({id:d.id,...d.data()}));later()},()=>{$("sub").textContent="Live updates stopped. Reload to reconnect."});
+  db.collection("visits").onSnapshot(s=>{visits=s.docs.map(d=>({id:d.id,...d.data()}));later()});
+  db.collection("vendors").onSnapshot(s=>{VENDORS=s.docs.map(d=>({id:d.id,...d.data()}));later()});
+})();
+function showLogin(sb){
+  canWrite=false;$("sub").textContent="Sign in to open the Maintenance Plan.";
+  document.querySelector("nav.tabs").hidden=true;
+  $("main").innerHTML=`<div class="rep login"><h2 class="rh">Sign in</h2><p class="rnote">Use your LG Client Care email and password.</p>
+   <div class="frow"><label class="grow">Email<input id="li-email" type="email" autocomplete="username"></label></div>
+   <div class="frow"><label class="grow">Password<input id="li-pass" type="password" autocomplete="current-password"></label></div>
+   <div class="frow"><button type="button" class="btn" id="li-go">Sign in</button><button type="button" class="linkbtn" id="li-reset">Forgot password</button></div><p class="rnote" id="li-msg"></p></div>`;
+  const msg=t=>$("li-msg").textContent=t;
+  const go=async()=>{msg("Signing in…");const {error}=await sb.auth.signInWithPassword({email:$("li-email").value.trim(),password:$("li-pass").value});if(error)msg(error.message);else location.reload()};
+  $("li-go").onclick=go;$("li-pass").onkeydown=e=>{if(e.key==="Enter")go()};
+  $("li-reset").onclick=async()=>{const em=$("li-email").value.trim();if(!em){msg("Enter your email first.");return}const {error}=await sb.auth.resetPasswordForEmail(em,{redirectTo:location.href});msg(error?error.message:"Check your email for a reset link.")};
+}
+</script>
+
+</body>
+</html>
